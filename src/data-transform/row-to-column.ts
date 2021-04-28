@@ -1,4 +1,4 @@
-import { ColumnData, DataSource, isColumnData } from "./data-source";
+import { ColumnData, DataSource, isColumnData } from "../data/data-source";
 
 export function rowToColumn(data: DataSource): ColumnData {
   if (isColumnData(data)) return data;

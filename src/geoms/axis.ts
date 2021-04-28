@@ -1,26 +1,38 @@
-import { render, removeNodes } from "lit-html";
+import { render } from "lit";
 import { Observable, of } from "rxjs";
-import { mergeMap } from "rxjs/operators";
+import { filter, mergeMap } from "rxjs/operators";
 
 import { Aesthetics } from "../data/aes";
 import { Context } from "../data/context";
 import { xAxis } from "../shape/x-axis";
+import { yAxis } from "../shape/y-axis";
+
 import { cloneTemplate, createTemplateResult, flatTemplate } from "../template";
 
-export interface AxisAestiques extends Aesthetics {
+export interface AxisAestiques {
   hideAxisY?: boolean;
-}
-export interface AxisProps {
-  aes?: AxisAestiques;
+  rotationAngle?: number;
 }
 
-export function axis(props?: AxisProps) {
+export function axis(props?: AxisAestiques) {
   return (source: Observable<Context>) => {
     return source.pipe(
       mergeMap((ctx) => {
-        ctx.updateAesthetics(props?.aes);
-        ctx.template.children = ctx.template.children || [];
+        let maxLabelWidth = 0;
+        if (!props?.hideAxisY) {
+          maxLabelWidth = getYMargin(ctx);
+        }
+        const maxLabelHeight = getXMargin(ctx);
+
+        ctx.axisMagins = {
+          bottom: maxLabelHeight,
+          left: maxLabelWidth,
+          right: 0,
+          top: 0,
+        };
+
         ctx.template.children.push(createXAxis(ctx));
+        ctx.template.children.push(createYAxis(ctx));
         return of(ctx);
       })
     );
@@ -28,57 +40,63 @@ export function axis(props?: AxisProps) {
 }
 
 function createXAxis(ctx: Context) {
-  const xDomain = ctx.xDomain;
   const xScale = ctx.xScale;
-  const maxLabelHeight = getMaxLabelHeight(ctx);
   const xAxisTpl = xAxis({
-    x: ctx.viewBox.x,
-    y: ctx.viewBox.y + ctx.viewBox.height - maxLabelHeight,
-    width: ctx.width,
-    ticks: xDomain.map((x) => xScale(x) || 0),
-    labels: xDomain,
+    x: ctx.innerViewBoxLeft,
+    y: ctx.innerViewBoxTop + ctx.innerViewBoxHeight,
+    width: ctx.innerViewBoxWidth,
+    ticks: xScale.ticks,
   });
-  ctx.viewBox.height = ctx.viewBox.height - maxLabelHeight;
   return xAxisTpl;
 }
 
-// function createYAxis(ctx: Context) {
-//   const xDomain = ctx.yDomain;
-//   const yScale = ctx.dicreteScale;
-//   const maxLabelHeight = getMaxLabelHeight(ctx);
-//   const xAxisTpl = xAxis({
-//     x: ctx.viewBox.x,
-//     y: ctx.viewBox.y + ctx.viewBox.height - maxLabelHeight,
-//     width: ctx.width,
-//     ticks: xDomain.map((x) => xScale(x) || 0),
-//     labels: xDomain,
-//   });
-//   ctx.viewBox.height = ctx.viewBox.height - maxLabelHeight;
-//   return xAxisTpl;
-// }
+function createYAxis(ctx: Context) {
+  const yScale = ctx.yScale;
+  const yAxisTpl = yAxis({
+    x: ctx.innerViewBoxLeft,
+    y: ctx.innerViewBoxTop,
+    height: ctx.innerViewBoxHeight,
+    ticks: yScale.ticks?.reverse(),
+  });
+  return yAxisTpl;
+}
 
-function getMaxLabelHeight(ctx: Context) {
-  const xDomain = ctx.xDomain;
-
-  const maxLengthLabelItem = xDomain.reduce((max, label) => {
-    return max.length < label.length ? label : max;
-  }, "");
+function getXMargin(ctx: Context) {
   const templateChart = cloneTemplate(ctx.template);
   templateChart.children = [
     xAxis({
-      x: 0,
-      y: ctx.height,
+      id: "tmp-x",
+      x: ctx.viewBox.x,
+      y: ctx.viewBox.y + ctx.viewBox.height,
       width: ctx.width,
-      ticks: [0],
-      labels: [maxLengthLabelItem],
+      ticks: ctx.xScale.ticks,
     }),
   ];
   const tmpContainer = ctx.createTmpContainer();
   render(createTemplateResult(flatTemplate(templateChart)), tmpContainer);
-  const textItem = tmpContainer.querySelector("svg text") as SVGTextElement;
-  const height = textItem.getBBox().height;
+  const axisX = tmpContainer.querySelector<SVGGraphicsElement>("#tmp-x");
+  const height = axisX!.getBBox().height || 0;
   tmpContainer.remove();
-  return height;
+  return Math.floor(height);
+}
+
+function getYMargin(ctx: Context) {
+  const templateChart = cloneTemplate(ctx.template);
+  templateChart.children = [
+    yAxis({
+      id: "tmp-y",
+      x: ctx.viewBox.x,
+      y: ctx.viewBox.y,
+      height: ctx.height,
+      ticks: ctx.yScale.ticks,
+    }),
+  ];
+  const tmpContainer = ctx.createTmpContainer();
+  render(createTemplateResult(flatTemplate(templateChart)), tmpContainer);
+  const axisX = tmpContainer.querySelector("#tmp-y") as SVGGraphicsElement;
+  const width = axisX.getBBox().width;
+  tmpContainer.remove();
+  return Math.floor(width);
 }
 
 // function getOptimalAngle(boxes, labelOpt) {

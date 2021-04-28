@@ -1,13 +1,15 @@
-import {
-  LitElement,
-  html,
-  css,
-  property,
-  customElement,
-  query,
-} from "lit-element";
-import { createChart } from "../src";
+import { LitElement, html, css, TemplateResult } from "lit";
+import { property, customElement, query } from "lit/decorators.js";
+import { interval, of, animationFrameScheduler } from "rxjs";
+import { map, observeOn } from "rxjs/operators";
+
+import { Chart } from "../src";
+import { animation } from "../src/animation/animation";
 import { axis } from "../src/geoms/axis";
+import { bar } from "../src/geoms/bar";
+import { path } from "../src/geoms/path";
+import { dicreteScaleProvider } from "../src/scale/dicrete-scale";
+import { linearScaleProvider } from "../src/scale/linear-scale";
 import { data } from "./data";
 @customElement("demo-app")
 export class DemoApp extends LitElement {
@@ -15,7 +17,25 @@ export class DemoApp extends LitElement {
 
   @query("#chart") chartContainer!: HTMLElement;
 
-  content = html`Rendering...`;
+  content: TemplateResult = html`Rendering...`;
+
+  xLabel = (label: string) => {
+    return label;
+  };
+
+  yLabel = (value: number) => {
+    return value.toString();
+  };
+
+  chart: Chart = new Chart(this, "#chart", {
+    xField: "name",
+    yFields: ["pv"],
+    xScaleProvider: dicreteScaleProvider({
+      labelFunction: this.xLabel,
+    }),
+    yScaleProvider: linearScaleProvider({ labelFunction: this.yLabel }),
+  });
+
   static styles = css`
     :host {
       height: 500px;
@@ -34,6 +54,7 @@ export class DemoApp extends LitElement {
       flex: 1;
       width: 100%;
       height: 100%;
+      font-size: 16px;
     }
     main {
       flex-grow: 1;
@@ -65,22 +86,37 @@ export class DemoApp extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
+    this.initChart();
+  }
+
+  initChart() {
+    this.chart.draw(animation({}), axis(), bar({}));
   }
 
   firstUpdated() {
-    const chart = createChart(this.chartContainer, data, {
-      xField: "name",
-      yField: "pv",
-    });
-
-    chart.pipe(axis()).subscribe((context) => {
-      console.log(context.template);
-      this.content = context.litTemplate;
-      this.requestUpdate();
-    });
+    // const dataSource = interval(1000).pipe(
+    //   map((_) => {
+    //     data[0].pv = data[0].pv + 100;
+    //     return [...data];
+    //   }),
+    //   observeOn(animationFrameScheduler)
+    // );
+    this.chart.setDataSource(data);
+    // const chart = createChart(this.chartContainer, data, {
+    //   xField: "name",
+    //   yFields: ["pv"],
+    //   xScaleProvider: dicreteScaleProvider({
+    //     labelFunction: this.xLabel,
+    //   }),
+    //   yScaleProvider: linearScaleProvider({ labelFunction: this.yLabel }),
+    // });
+    // chart.pipe(animation({}), axis(), bar({})).subscribe((context) => {
+    //   this.content = context.litTemplate;
+    //   this.requestUpdate();
+    // });
   }
 
   render() {
-    return html`<div id="chart">${this.content}</div>`;
+    return html`<div id="chart">${this.chart.template}</div>`;
   }
 }

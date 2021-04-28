@@ -1,4 +1,4 @@
-import { SVGPath } from "../data/svg-path";
+import { SVGPath } from "./svg-path";
 import { Template } from "../template";
 import { path } from "./path";
 

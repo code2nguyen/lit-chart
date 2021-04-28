@@ -1,4 +1,4 @@
-import { SVGPath, toPath } from "../data/svg-path";
+import { SVGPath, toPath } from "./svg-path";
 import { template } from "../template";
 
 export interface PathProps {
@@ -8,5 +8,7 @@ export interface PathProps {
 }
 
 export function path({ d, className = "fds-path", ...others }: PathProps) {
-  return template`<path ...=${others} class="${className}" d=${toPath(d)} />`;
+  return template`<path ...=${others} fill="transparent" stroke="black" class="${className}" d=${toPath(
+    d
+  )} />`;
 }

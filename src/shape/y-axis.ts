@@ -1,3 +1,4 @@
+import { Tick } from "../scale/scale";
 import { flatTemplate, Template } from "../template";
 import { group } from "./group";
 import { line } from "./line";
@@ -8,15 +9,17 @@ interface YAxisProps {
   height: number;
   x: number;
   y: number;
-  ticks?: number[];
+  ticks?: Tick[];
   tickWidth?: number;
   renderTick?: boolean;
   tickPosition?: "center" | "left" | "right";
-  labels?: string[];
+  renderLabel?: boolean;
   labelPadding?: number;
+  id?: string;
 }
 
 export function yAxis({
+  id,
   className = "axis-y",
   height,
   x,
@@ -25,14 +28,14 @@ export function yAxis({
   tickWidth = 7,
   renderTick = true,
   tickPosition = "left",
-  labels = [],
+  renderLabel = true,
   labelPadding = 10,
 }: YAxisProps): Template {
-  const root = group({ className });
+  const root = group({ id, className });
   root.children = [];
   const axis = line({
     x,
-    y,
+    y: y,
     length: height,
     orientation: "vertical",
     className: className + "-line",
@@ -47,7 +50,7 @@ export function yAxis({
       : x;
   if (renderTick) {
     for (const tick of ticks) {
-      const tickY = y + tick;
+      const tickY = tick.tickCoordinate;
       root.children.push(
         line({
           x: tickX,
@@ -59,19 +62,22 @@ export function yAxis({
       );
     }
   }
-  const labelX = x - labelPadding;
-  for (let i = 0; i < labels.length; i++) {
-    const labelY = y + ticks[i];
-    root.children.push(
-      text({
-        x: labelX,
-        y: labelY,
-        className: className + "-label",
-        value: labels[i],
-        textAnchor: "end",
-        dominantBaseline: "middle",
-      })
-    );
+  if (renderLabel) {
+    const labelX = x - labelPadding;
+    for (const tick of ticks) {
+      // TODO, depend on tick position, need to change label position
+      const labelY = tick.labelCoordinate || tick.tickCoordinate;
+      root.children.push(
+        text({
+          x: labelX,
+          y: labelY,
+          className: className + "-label",
+          value: tick.label || "",
+          textAnchor: "end",
+          dominantBaseline: "middle",
+        })
+      );
+    }
   }
 
   return flatTemplate(root);

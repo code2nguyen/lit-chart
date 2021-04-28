@@ -1,9 +1,9 @@
-import { defaultTemplateProcessor, SVGTemplateResult } from "lit-html";
+import { SVGTemplateResult } from "lit";
 
 export interface Template {
   strings: readonly string[];
   values: unknown[];
-  children?: Template[];
+  children: Template[];
 }
 
 export const CHILDREN_PLACEHOLDER = "<!--...children-->";
@@ -15,16 +15,16 @@ export function template(
   return {
     strings: strings.raw,
     values,
+    children: [],
   };
 }
 
 export function createTemplateResult(template: Template): SVGTemplateResult {
-  return new SVGTemplateResult(
-    template.strings as TemplateStringsArray,
-    template.values,
-    "SVG",
-    defaultTemplateProcessor
-  );
+  return {
+    _$litType$: 2,
+    strings : template.strings as TemplateStringsArray,
+    values: template.values,
+  };
 }
 
 export function injectTemplate(
@@ -57,6 +57,7 @@ export function injectTemplate(
       ...childTpl.values,
       ...parentTpl.values.slice(childrenIndex.itemIndex),
     ],
+    children: [],
   };
 }
 
@@ -73,6 +74,7 @@ export function concatTemplate(tpls: Template[]): Template {
         ...tpl.strings.slice(1),
       ],
       values: [...result.values, ...tpl.values],
+      children: [],
     };
   });
 }
@@ -81,6 +83,7 @@ export function cloneTemplate(tpl: Template): Template {
   return {
     strings: [...tpl.strings],
     values: [...tpl.values],
+    children: [],
   };
 }
 
@@ -99,7 +102,7 @@ function getChildIndex(template: Template) {
 }
 
 export function flatTemplate(ttree: Template): Template {
-  if (ttree.children) {
+  if (ttree.children && ttree.children.length > 0) {
     const child = concatTemplate(ttree.children);
     return injectTemplate(ttree, child);
   }

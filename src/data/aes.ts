@@ -1,10 +1,15 @@
+import { ScaleProvider } from "../scale/scale";
+
+export interface Margin {
+  top: number;
+  left: number;
+  right: number;
+  bottom: number;
+}
 export interface Aesthetics {
-  xField?: string;
-  yField?: string;
-
-  yRangeMin?: number;
-  yRangeMax?: number;
-
-  xRangeMin?: number;
-  xRangeMax?: number;
+  xField: string;
+  yFields: string[];
+  xScaleProvider?: ScaleProvider<string> | ScaleProvider<number>;
+  yScaleProvider?: ScaleProvider<number>;
+  margin?: Partial<Margin>;
 }

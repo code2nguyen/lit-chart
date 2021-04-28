@@ -1,3 +1,4 @@
+import { Tick } from "../scale/scale";
 import { flatTemplate, Template } from "../template";
 import { group } from "./group";
 import { line } from "./line";
@@ -8,15 +9,20 @@ interface XAxisProps {
   width: number;
   x: number;
   y: number;
-  ticks?: number[];
+
+  ticks?: Tick[];
+
   tickHeight?: number;
   renderTick?: boolean;
   tickPosition?: "center" | "top" | "bottom";
-  labels?: string[];
+
+  renderLabel?: boolean;
   labelPadding?: number;
+  id?: string;
 }
 
 export function xAxis({
+  id,
   className = "axis-x",
   width,
   x,
@@ -25,10 +31,10 @@ export function xAxis({
   tickHeight = 7,
   renderTick = true,
   tickPosition = "bottom",
-  labels = [],
+  renderLabel = true,
   labelPadding = 10,
 }: XAxisProps): Template {
-  const root = group({ className });
+  const root = group({ id, className });
   root.children = [];
   const axis = line({
     x,
@@ -47,7 +53,7 @@ export function xAxis({
       : y;
   if (renderTick) {
     for (const tick of ticks) {
-      const tickX = x + tick;
+      const tickX = tick.tickCoordinate;
       root.children.push(
         line({
           x: tickX,
@@ -59,17 +65,20 @@ export function xAxis({
       );
     }
   }
-  const labelY = y + labelPadding;
-  for (let i = 0; i < labels.length; i++) {
-    const labelX = x + ticks[i];
-    root.children.push(
-      text({
-        x: labelX,
-        y: labelY,
-        className: className + "-label",
-        value: labels[i],
-      })
-    );
+  if (renderLabel) {
+    const labelY = tickY + labelPadding;
+    for (const tick of ticks) {
+      // TODO, depend on tick position, need to change label position
+      const labelX = tick.labelCoordinate || tick.tickCoordinate;
+      root.children.push(
+        text({
+          x: labelX,
+          y: labelY,
+          className: className + "-label",
+          value: tick.label || "",
+        })
+      );
+    }
   }
 
   return flatTemplate(root);
